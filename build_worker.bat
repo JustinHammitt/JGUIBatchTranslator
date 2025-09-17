@@ -6,9 +6,10 @@ REM CONFIG
 REM =======================
 set APP_NAME=translator_worker
 set APP_VERSION=1.0.0
+set WORKER_SRC=python\translator_worker.py
 set PYI=pyinstaller.exe
 set PYTHON=python
-REM Where worker will be installed on end-user machines:
+REM Where the worker will live on user machines:
 set INSTALL_SUBDIR=GUIBatchTranslator\translator_worker
 
 REM =======================
@@ -21,11 +22,15 @@ if exist release\worker rmdir /s /q release\worker
 mkdir release\worker
 
 REM =======================
-REM BUILD (ONEDIR) — lean worker, no GUI libs
+REM BUILD (ONEDIR)
 REM =======================
-echo [BUILD] PyInstaller ONEDIR: %APP_NAME%.py
+if not exist "%WORKER_SRC%" (
+  echo [ERROR] %WORKER_SRC% not found.
+  exit /b 1
+)
+echo [BUILD] PyInstaller ONEDIR: %WORKER_SRC%
 %PYI% ^
-  %APP_NAME%.py ^
+  "%WORKER_SRC%" ^
   --name "%APP_NAME%" ^
   --onedir ^
   --noconsole ^
@@ -44,23 +49,24 @@ if ERRORLEVEL 1 (
   echo [ERROR] PyInstaller build failed.
   exit /b 1
 )
-
 if not exist "dist\%APP_NAME%\%APP_NAME%.exe" (
   echo [ERROR] dist\%APP_NAME%\%APP_NAME%.exe not found.
   exit /b 1
 )
 
 REM =======================
-REM MODELS — copy from repo root into ONEDIR
-REM Expect your repo has: .\Models\*.argosmodel
+REM MODELS — copy from repo 'Models\' OR 'python\Models\'
 REM =======================
 if not exist "dist\%APP_NAME%\Models" mkdir "dist\%APP_NAME%\Models"
 
 if exist "Models\" (
-  echo [MODELS] Copying repo Models\ -> dist\%APP_NAME%\Models\
+  echo [MODELS] Copying .\Models\ -> dist\%APP_NAME%\Models\
   robocopy "Models" "dist\%APP_NAME%\Models" /E /NFL /NDL /NJH /NJS >nul
+) else if exist "python\Models\" (
+  echo [MODELS] Copying .\python\Models\ -> dist\%APP_NAME%\Models\
+  robocopy "python\Models" "dist\%APP_NAME%\Models" /E /NFL /NDL /NJH /NJS >nul
 ) else (
-  echo [WARN] No repo .\Models\ folder found. Worker will build without models.
+  echo [WARN] No Models\ folder found in repo root or python\.
 )
 
 for %%F in (*.argosmodel) do (
@@ -71,6 +77,8 @@ for %%F in (*.argosmodel) do (
 REM =======================
 REM PACK — create single ZIP payload
 REM =======================
+echo %APP_VERSION%> release\worker\VERSION.txt
+
 echo [PACK] Creating ZIP payload...
 powershell -NoProfile -Command ^
   "Compress-Archive -Path 'dist\%APP_NAME%\*' -DestinationPath 'release\worker\%APP_NAME%_payload.zip' -Force"
@@ -87,34 +95,29 @@ echo [EMIT] Writing release\worker\InstallWorker.cmd
   echo @echo off
   echo setlocal
   echo set "APP=%APP_NAME%"
-  echo set "VERSION=%APP_VERSION%"
+  echo set "VERSION_FILE=%%~dp0VERSION.txt"
   echo set "INSTALL=%%LOCALAPPDATA%%\%INSTALL_SUBDIR%"
   echo set "ZIP=%%~dp0%APP_NAME%_payload.zip"
   echo set "EXE=%%INSTALL%%\%APP%.exe"
   echo set "VERFILE=%%INSTALL%%\.version"
-  echo.
+  echo for /f "usebackq delims=" %%%%V in ("%%VERSION_FILE%%") do set "EXPECTED_VERSION=%%%%V"
   echo if exist "%%EXE%%" if exist "%%VERFILE%%" ^
-    for /f "usebackq delims=" %%%%V in ("%%VERFILE%%") do ^
-      if /i "%%%%V"=="%%VERSION%%" goto run
-  echo.
+   for /f "usebackq delims=" %%%%V in ("%%VERFILE%%") do ^
+    if /i "%%%%V"=="%%EXPECTED_VERSION%%" goto :run
   echo echo [INSTALL] Extracting payload to "%%INSTALL%%"...
   echo rmdir /s /q "%%INSTALL%%" 2^>nul
   echo mkdir "%%INSTALL%%" 2^>nul
   echo powershell -NoProfile -ExecutionPolicy Bypass ^
-  echo ^  -Command "Expand-Archive -LiteralPath '%%ZIP%%' -DestinationPath '%%INSTALL%%' -Force"
-  echo if ERRORLEVEL 1 (
-  echo   echo [ERROR] Extraction failed.
-  echo   exit /b 1
-  echo )
-  echo > "%%VERFILE%%" echo %%VERSION%%
-  echo.
+  echo   -Command "Expand-Archive -LiteralPath '%%ZIP%%' -DestinationPath '%%INSTALL%%' -Force"
+  echo if ERRORLEVEL 1 ( echo [ERROR] Extraction failed. ^& exit /b 1 )
+  echo ^> "%%VERFILE%%" echo %%EXPECTED_VERSION%%
   echo :run
   echo echo [RUN] Starting %%EXE%%
   echo start "" "%%EXE%%"
   echo endlocal
 ) > "release\worker\InstallWorker.cmd"
 
-REM (Optional) checksum
+REM (Optional) checksums
 where certutil >nul 2>&1
 if %ERRORLEVEL%==0 (
   certutil -hashfile "release\worker\%APP_NAME%_payload.zip" SHA256 > "release\worker\%APP_NAME%_payload.sha256.txt"
@@ -123,11 +126,12 @@ if %ERRORLEVEL%==0 (
 
 echo.
 echo [DONE]
-echo Ship these two files to install the Python worker:
+echo Ship these to install the Python worker:
 echo   release\worker\InstallWorker.cmd
 echo   release\worker\%APP_NAME%_payload.zip
+echo   release\worker\VERSION.txt
 echo.
-echo Java should run InstallWorker.cmd once (if worker not found), then execute:
+echo Java should ensure the worker is installed, then spawn:
 echo   %%LOCALAPPDATA%%\%INSTALL_SUBDIR%\%APP_NAME%.exe
 echo.
 pause
