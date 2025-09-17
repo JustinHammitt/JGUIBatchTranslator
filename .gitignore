@@ -22,3 +22,91 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+
+##############
+# OS junk
+##############
+.DS_Store
+Thumbs.db
+desktop.ini
+
+##############
+# IDEs / editors
+##############
+# Eclipse
+.project
+.classpath
+.settings/
+.factorypath
+# IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+# VS Code
+.vscode/
+
+##############
+# Java build output
+##############
+/out/
+/bin/
+/target/
+/*.jar
+
+##############
+# Python (bytecode, venvs, metadata)
+##############
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+##############
+# PyInstaller & worker build artifacts
+##############
+# Top-level PyInstaller output
+/build/
+/dist/
+*.spec
+
+# If you sometimes build from python/ subdir
+/python/build/
+/python/dist/
+/python/*.spec
+
+# Our packaged worker + staged copies
+/release/
+/worker/
+
+# Checksums & temporary payloads
+*.sha256.txt
+
+# (Optional) any accidental exe/zips at repo root
+/*.exe
+/*.zip
+
+##############
+# Models (large files) — keep folder, ignore contents
+# Create a placeholder file like Models/.gitkeep to keep dirs.
+##############
+/Models/*
+!/Models/.gitkeep
+/python/Models/*
+!/python/Models/.gitkeep
+
+##############
+# Logs & runtime debris
+##############
+*.log
+logs/

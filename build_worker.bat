@@ -5,7 +5,7 @@ REM =======================
 REM CONFIG
 REM =======================
 set APP_NAME=translator_worker
-set APP_VERSION=1.0.0
+set APP_VERSION=1.0.1
 set WORKER_SRC=python\translator_worker.py
 set PYI=pyinstaller.exe
 set PYTHON=python
@@ -91,31 +91,26 @@ REM =======================
 REM INSTALL SCRIPT — expands once to LocalAppData and writes .version
 REM =======================
 echo [EMIT] Writing release\worker\InstallWorker.cmd
-(
-  echo @echo off
-  echo setlocal
-  echo set "APP=%APP_NAME%"
-  echo set "VERSION_FILE=%%~dp0VERSION.txt"
-  echo set "INSTALL=%%LOCALAPPDATA%%\%INSTALL_SUBDIR%"
-  echo set "ZIP=%%~dp0%APP_NAME%_payload.zip"
-  echo set "EXE=%%INSTALL%%\%APP%.exe"
-  echo set "VERFILE=%%INSTALL%%\.version"
-  echo for /f "usebackq delims=" %%%%V in ("%%VERSION_FILE%%") do set "EXPECTED_VERSION=%%%%V"
-  echo if exist "%%EXE%%" if exist "%%VERFILE%%" ^
-   for /f "usebackq delims=" %%%%V in ("%%VERFILE%%") do ^
-    if /i "%%%%V"=="%%EXPECTED_VERSION%%" goto :run
-  echo echo [INSTALL] Extracting payload to "%%INSTALL%%"...
-  echo rmdir /s /q "%%INSTALL%%" 2^>nul
-  echo mkdir "%%INSTALL%%" 2^>nul
-  echo powershell -NoProfile -ExecutionPolicy Bypass ^
-  echo   -Command "Expand-Archive -LiteralPath '%%ZIP%%' -DestinationPath '%%INSTALL%%' -Force"
-  echo if ERRORLEVEL 1 ( echo [ERROR] Extraction failed. ^& exit /b 1 )
-  echo ^> "%%VERFILE%%" echo %%EXPECTED_VERSION%%
-  echo :run
-  echo echo [RUN] Starting %%EXE%%
-  echo start "" "%%EXE%%"
-  echo endlocal
-) > "release\worker\InstallWorker.cmd"
+> "release\worker\InstallWorker.cmd" echo @echo off
+>> "release\worker\InstallWorker.cmd" echo setlocal EnableExtensions
+>> "release\worker\InstallWorker.cmd" echo set "APP_DIR=%%LOCALAPPDATA%%\%INSTALL_SUBDIR%"
+>> "release\worker\InstallWorker.cmd" echo set "PAYLOAD=%%~dp0%APP_NAME%_payload.zip"
+>> "release\worker\InstallWorker.cmd" echo set "VERFILE=%%APP_DIR%%\.version"
+>> "release\worker\InstallWorker.cmd" echo set "EXE=%%APP_DIR%%\translator_worker.exe"
+>> "release\worker\InstallWorker.cmd" echo set "VERSION_FILE=%%~dp0VERSION.txt"
+>> "release\worker\InstallWorker.cmd" echo for /f "usebackq delims=" %%%%V in ("%%VERSION_FILE%%") do set "EXPECTED_VERSION=%%%%V"
+>> "release\worker\InstallWorker.cmd" echo if exist "%%EXE%%" if exist "%%VERFILE%%" for /f "usebackq delims=" %%%%V in ("%%VERFILE%%") do if /i "%%%%V"=="%%EXPECTED_VERSION%%" goto :run
+>> "release\worker\InstallWorker.cmd" echo echo [INSTALL] Extracting payload to "%%APP_DIR%%"...
+>> "release\worker\InstallWorker.cmd" echo rmdir /s /q "%%APP_DIR%%" 2^>nul
+>> "release\worker\InstallWorker.cmd" echo mkdir "%%APP_DIR%%" 2^>nul
+>> "release\worker\InstallWorker.cmd" echo powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath '%%PAYLOAD%%' -DestinationPath '%%APP_DIR%%' -Force"
+>> "release\worker\InstallWorker.cmd" echo if ERRORLEVEL 1 ^( echo [ERROR] Extraction failed. ^& exit /b 1 ^)
+>> "release\worker\InstallWorker.cmd" echo echo %%EXPECTED_VERSION%%^> "%%VERFILE%%"
+>> "release\worker\InstallWorker.cmd" echo :run
+>> "release\worker\InstallWorker.cmd" echo echo [RUN] Starting %%EXE%%
+>> "release\worker\InstallWorker.cmd" echo start "" "%%EXE%%"
+>> "release\worker\InstallWorker.cmd" echo endlocal
+
 
 REM (Optional) checksums
 where certutil >nul 2>&1
