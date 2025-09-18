@@ -5,7 +5,13 @@ REM =======================
 REM CONFIG
 REM =======================
 set APP_NAME=translator_worker
-set APP_VERSION=1.0.1
+set "APP_VERSION=1.0.1"
+for /f "tokens=1-3 delims=/- " %%a in ("%date%") do set "YYYY=%%c" & set "MM=00%%a" & set "DD=00%%b"
+set "MM=%MM:~-2%" & set "DD=%DD:~-2%"
+for /f "tokens=1-3 delims=:." %%h in ("%time%") do set "HH=0%%h" & set "NN=0%%i" & set "SS=0%%j"
+set "HH=%HH:~-2%" & set "NN=%NN:~-2%" & set "SS=%SS:~-2%"
+> release\worker\VERSION.txt echo %APP_VERSION%+%YYYY%%MM%%DD%-%HH%%NN%%SS%
+
 set WORKER_SRC=python\translator_worker.py
 set PYI=pyinstaller.exe
 set PYTHON=python
